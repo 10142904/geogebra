@@ -1116,7 +1116,8 @@ public abstract class AppW extends App implements SetLabels, HasLanguage {
 		fileNew();
 		setDefaultCursor();
 
-		if (!isUnbundledOrWhiteboard()) {
+		if (!isUnbundledOrWhiteboard() && (getAppletParameters().getDataParamShowAppsPicker()
+				|| getAppletParameters().getDataParamApp())) {
 			showPerspectivesPopup();
 		}
 	}
