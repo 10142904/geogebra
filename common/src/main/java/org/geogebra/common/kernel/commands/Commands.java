@@ -276,6 +276,8 @@ public enum Commands implements CommandsConstants,
 
 	IntegralBetween(TABLE_FUNCTION),
 
+	IntegralSymbolic(TABLE_FUNCTION),
+
 	LowerSum(TABLE_FUNCTION),
 
 	LeftSum(TABLE_FUNCTION),
@@ -1057,16 +1059,16 @@ public enum Commands implements CommandsConstants,
 	PerpendicularPlane(TABLE_ENGLISH),
 
 	/** internal name */
-	ConeInfinite(TABLE_ENGLISH),
+	ConeInfinite(TABLE_3D),
 
 	/** English name */
-	InfiniteCone(TABLE_3D),
+	InfiniteCone(TABLE_ENGLISH),
 
 	/** internal name */
-	CylinderInfinite(TABLE_ENGLISH),
+	CylinderInfinite(TABLE_3D),
 
 	/** English name */
-	InfiniteCylinder(TABLE_3D),
+	InfiniteCylinder(TABLE_ENGLISH),
 
 	IntersectCircle(TABLE_ENGLISH),
 
@@ -1161,6 +1163,8 @@ public enum Commands implements CommandsConstants,
 	Solutions(TABLE_ALGEBRA),
 
 	Solve(TABLE_ALGEBRA),
+
+	PlotSolve(TABLE_FUNCTION),
 
 	SolveCubic(TABLE_CAS),
 
@@ -1285,10 +1289,10 @@ public enum Commands implements CommandsConstants,
 			return Random;
 		case TaylorPolynomial:
 			return TaylorSeries;
-		case CylinderInfinite:
-			return InfiniteCylinder;
-		case ConeInfinite:
-			return InfiniteCone;
+		case InfiniteCylinder:
+			return CylinderInfinite;
+		case InfiniteCone:
+			return ConeInfinite;
 		case PerpendicularPlane:
 			return OrthogonalPlane;
 		case InputBox:

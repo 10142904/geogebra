@@ -23,6 +23,7 @@ import org.geogebra.common.kernel.arithmetic.MyArbitraryConstant;
 import org.geogebra.common.kernel.arithmetic.MyList;
 import org.geogebra.common.kernel.arithmetic.MyVecNDNode;
 import org.geogebra.common.kernel.arithmetic.Traversing;
+import org.geogebra.common.kernel.arithmetic.ValidExpression;
 import org.geogebra.common.kernel.arithmetic.ValueType;
 import org.geogebra.common.kernel.arithmetic.variable.Variable;
 import org.geogebra.common.kernel.commands.AlgebraProcessor;
@@ -37,7 +38,6 @@ import org.geogebra.common.util.StringUtil;
 
 /**
  * Symbolic geo for CAS computations in AV
- *
  * @author Zbynek
  */
 public class GeoSymbolic extends GeoElement implements GeoSymbolicI, VarString,
@@ -67,16 +67,14 @@ public class GeoSymbolic extends GeoElement implements GeoSymbolicI, VarString,
 	}
 
 	/**
-	 * @param value
-	 *            output expression
+	 * @param value output expression
 	 */
 	private void setValue(ExpressionValue value) {
 		this.value = value;
 	}
 
 	/**
-	 * @param c
-	 *            construction
+	 * @param c construction
 	 */
 	public GeoSymbolic(Construction c) {
 		super(c);
@@ -170,16 +168,20 @@ public class GeoSymbolic extends GeoElement implements GeoSymbolicI, VarString,
 	public void computeOutput() {
 		ExpressionValue casInputArg = getDefinition().deepCopy(kernel)
 				.traverse(FunctionExpander.getCollector());
-		Command casInput;
-		if (casInputArg.unwrap() instanceof Command) {
-			// don't wrap commands in additional Evaluate
-			casInput = (Command) casInputArg.unwrap();
-		} else {
-			casInput = new Command(kernel, "Evaluate", false);
-			casInput.addArgument(casInputArg.wrap());
+		Command casInput = getCasInput(casInputArg);
+
+		MyArbitraryConstant constant = getArbitraryConstant();
+		constant.setSymbolic(!shouldBeEuclidianVisible(casInput));
+
+		String s = evaluateGeoGebraCAS(casInput.wrap(), constant);
+
+		if (Commands.Solve.name().equals(casInput.getName()) && GeoFunction.isUndefined(s)) {
+			getDefinition().getTopLevelCommand().setName(Commands.NSolve.name());
+			casInput = getCasInput(getDefinition().deepCopy(kernel)
+					.traverse(FunctionExpander.getCollector()));
+			s = evaluateGeoGebraCAS(casInput.wrap(), constant);
 		}
-		String s = kernel.getGeoGebraCAS().evaluateGeoGebraCAS(casInput.wrap(),
-				getArbitraryConstant(), StringTemplate.prefixedDefault, null, kernel);
+
 		this.casOutputString = s;
 		ExpressionValue casOutput = parseOutputString(s);
 
@@ -190,10 +192,28 @@ public class GeoSymbolic extends GeoElement implements GeoSymbolicI, VarString,
 		isEuclidianShowable = shouldBeEuclidianVisible(casInput);
 	}
 
+	private Command getCasInput(ExpressionValue casInputArg) {
+		Command casInput;
+		if (casInputArg.unwrap() instanceof  Command) {
+			casInput = (Command) casInputArg.unwrap();
+		} else {
+			casInput = new Command(kernel, "Evaluate", false);
+			casInput.addArgument(casInputArg.wrap());
+		}
+		return casInput;
+	}
+
+	private String evaluateGeoGebraCAS(ValidExpression exp, MyArbitraryConstant constant) {
+		return kernel.getGeoGebraCAS().evaluateGeoGebraCAS(
+				exp, constant, StringTemplate.prefixedDefault, null, kernel);
+	}
+
 	private boolean shouldBeEuclidianVisible(Command input) {
 		String inputName = input.getName();
 		return !Commands.Solve.name().equals(inputName)
-				&& !Commands.NSolve.name().equals(inputName);
+				&& !Commands.NSolve.name().equals(inputName)
+				&& !Commands.IntegralSymbolic.name().equals(inputName)
+				&& !Commands.IsInteger.name().equals(inputName);
 	}
 
 	private ExpressionValue parseOutputString(String output) {
@@ -271,8 +291,7 @@ public class GeoSymbolic extends GeoElement implements GeoSymbolicI, VarString,
 	}
 
 	/**
-	 * @param functionVariables
-	 *            function variables
+	 * @param functionVariables function variables
 	 */
 	public void setVariables(FunctionVariable[] functionVariables) {
 		fVars.clear();
@@ -296,7 +315,6 @@ public class GeoSymbolic extends GeoElement implements GeoSymbolicI, VarString,
 		if (isTwinUpToDate) {
 			return twinGeo;
 		}
-
 		GeoElementND newTwin = createTwinGeo();
 
 		if (newTwin instanceof EquationValue) {
@@ -732,4 +750,8 @@ public class GeoSymbolic extends GeoElement implements GeoSymbolicI, VarString,
 		this.constant = constant;
 	}
 
+	@Override
+	public boolean isFixable() {
+		return false;
+	}
 }

@@ -1,17 +1,21 @@
 package org.geogebra.web.full.gui.pagecontrolpanel;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.geogebra.common.plugin.Event;
+import org.geogebra.common.plugin.EventType;
 import org.geogebra.common.util.StringUtil;
 import org.geogebra.web.full.css.MaterialDesignResources;
+import org.geogebra.web.full.gui.dialog.PreviewCardRenameDialog;
 import org.geogebra.web.full.gui.util.ContextMenuButtonCard;
 import org.geogebra.web.html5.gui.util.AriaMenuItem;
 import org.geogebra.web.html5.gui.util.BrowserStorage;
 import org.geogebra.web.html5.main.AppW;
+import org.geogebra.web.shared.components.DialogData;
 
 /**
  * Context Menu of Page Preview Cards
- * 
- * @author Alicia Hofstaetter
- *
  */
 public class ContextMenuButtonPreviewCard extends ContextMenuButtonCard {
 
@@ -32,10 +36,29 @@ public class ContextMenuButtonPreviewCard extends ContextMenuButtonCard {
 	@Override
 	protected void initPopup() {
 		super.initPopup();
-		addDeleteItem();
 		addCutItem();
 		addCopyItem();
 		addPasteItem();
+		addSeparator();
+		addRenameItem();
+		addDeleteItem();
+	}
+
+	private void addSeparator() {
+		wrappedPopup.addSeparator();
+	}
+
+	private void addRenameItem() {
+		addItem(MaterialDesignResources.INSTANCE.mow_rename(),
+				loc.getMenu("Rename"), this::onRename);
+
+	}
+
+	private void onRename() {
+		DialogData data = new DialogData("Rename", "Cancel", "OK");
+		PreviewCardRenameDialog renameDialog = new PreviewCardRenameDialog(app, data, card);
+		renameDialog.show();
+		renameDialog.selectAll();
 	}
 
 	private void addDeleteItem() {
@@ -66,6 +89,10 @@ public class ContextMenuButtonPreviewCard extends ContextMenuButtonCard {
 	 */
 	private void onDelete() {
 		hide();
+		boolean oneSlide = app.getPageController().getSlideCount() == 1;
+		app.dispatchEvent(new Event(oneSlide ? EventType.CLEAR_SLIDE
+				: EventType.REMOVE_SLIDE, null,
+				card.getPageIndex() + ""));
 		frame.getPageControlPanel().removePage(card.getPageIndex());
 	}
 
@@ -74,8 +101,18 @@ public class ContextMenuButtonPreviewCard extends ContextMenuButtonCard {
 	 */
 	private void onPaste() {
 		hide();
+		app.dispatchEvent(new Event(EventType.PASTE_SLIDE)
+				.setJsonArgument(getPasteJson()));
 		frame.getPageControlPanel().pastePage(card,
 				BrowserStorage.LOCAL.getItem(BrowserStorage.COPY_SLIDE));
+	}
+
+	protected Map<String, Object> getPasteJson() {
+		Map<String, Object> pasteJson = new HashMap<>();
+		pasteJson.put("cardIdx", card.getPageIndex());
+		pasteJson.put("ggbFile", BrowserStorage.LOCAL.getItem(BrowserStorage.COPY_SLIDE));
+
+		return pasteJson;
 	}
 
 	private void onCopy() {

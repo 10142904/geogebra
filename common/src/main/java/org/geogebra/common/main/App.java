@@ -375,6 +375,7 @@ public abstract class App implements UpdateSelection, AppInterface, EuclidianHos
 
 	private boolean showResetIcon = false;
 	private ParserFunctions pf;
+	private ParserFunctions pfInputBox;
 	private SpreadsheetTraceManager traceManager;
 	private ExamEnvironment exam;
 
@@ -439,6 +440,8 @@ public abstract class App implements UpdateSelection, AppInterface, EuclidianHos
 	private SettingsUpdater settingsUpdater;
 	private FontCreator fontCreator;
 	private AlgebraOutputFilter algebraOutputFilter;
+
+	private final AppConfig appConfig = new AppConfigDefault();
 
 	public static String[] getStrDecimalSpacesAC() {
 		return strDecimalSpacesAC;
@@ -2929,13 +2932,26 @@ public abstract class App implements UpdateSelection, AppInterface, EuclidianHos
 	/**
 	 * @return parser extension for functions
 	 */
-	public ParserFunctions getParserFunctions() {
+	public ParserFunctions getParserFunctions(boolean inputBox) {
 		if (pf == null) {
 			pf = getConfig().createParserFunctions();
+			pf.addTrigShorthandFunctions();
+			pfInputBox = getConfig().createParserFunctions();
 		}
 		pf.setInverseTrig(
 				kernel.getLoadingMode() && kernel.getInverseTrigReturnsAngle());
-		return pf;
+		pfInputBox.setInverseTrig(
+				kernel.getLoadingMode() && kernel.getInverseTrigReturnsAngle());
+
+		if (inputBox) {
+			return pfInputBox;
+		} else {
+			return pf;
+		}
+	}
+
+	public ParserFunctions getParserFunctions() {
+		return getParserFunctions(false);
 	}
 
 	/**
@@ -3878,9 +3894,6 @@ public abstract class App implements UpdateSelection, AppInterface, EuclidianHos
 		case ADJUST_WIDGETS:
 			return false;
 
-		case SURFACE_2D:
-			return prerelease;
-
 		case SYMBOLIC_AV:
 			return true;
 
@@ -4757,7 +4770,7 @@ public abstract class App implements UpdateSelection, AppInterface, EuclidianHos
 	}
 
 	public AppConfig getConfig() {
-		return new AppConfigDefault();
+		return appConfig;
 	}
 
 	/**
@@ -5179,5 +5192,9 @@ public abstract class App implements UpdateSelection, AppInterface, EuclidianHos
 
 	public void closeMenuHideKeyboard() {
 		// nothing here
+	}
+
+	public String getThreadId() {
+		return "[main thread]";
 	}
 }

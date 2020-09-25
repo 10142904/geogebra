@@ -38,12 +38,12 @@ import org.geogebra.web.full.main.embed.GraspableEmbedElement;
 import org.geogebra.web.html5.main.GgbFile;
 import org.geogebra.web.html5.main.MyImageW;
 import org.geogebra.web.html5.main.ScriptManagerW;
-import org.geogebra.web.html5.main.TestArticleElement;
+import org.geogebra.web.html5.util.AppletParameters;
 import org.geogebra.web.html5.util.Dom;
+import org.geogebra.web.html5.util.GeoGebraElement;
 import org.geogebra.web.html5.util.ImageManagerW;
 import org.geogebra.web.resources.SVGResource;
 
-import com.google.gwt.core.client.JavaScriptObject;
 import com.google.gwt.core.shared.GWT;
 import com.google.gwt.dom.client.Element;
 import com.google.gwt.dom.client.Style;
@@ -53,6 +53,7 @@ import com.google.gwt.user.client.ui.Frame;
 import com.google.gwt.user.client.ui.Widget;
 
 import elemental2.core.Global;
+import jsinterop.base.JsPropertyMap;
 
 /**
  * Creates, deletes and resizes embedded applets.
@@ -132,25 +133,31 @@ public class EmbedManagerW implements EmbedManager, EventRenderable {
 	}
 
 	private CalcEmbedElement createCalcEmbed(DrawEmbed drawEmbed) {
-		TestArticleElement parameters = new TestArticleElement("graphing");
-		GeoGebraFrameFull fr = new GeoGebraFrameFull(
-				(AppletFactory) GWT.create(AppletFactory.class), app.getLAF(),
-				app.getDevice(), parameters);
+		FlowPanel scaler = new FlowPanel();
+		addToGraphics(scaler);
 
-		parameters
-				.attr("scaleContainerClass", "embedContainer")
-				.attr("allowUpscale", "true")
-				.attr("width", drawEmbed.getGeoEmbed().getContentWidth() + "")
-				.attr("height", drawEmbed.getGeoEmbed().getContentHeight() + "")
-				.attr("appName", drawEmbed.getGeoEmbed().getAppName())
-				.attr("borderColor", "#CCC");
+		FlowPanel parent = new FlowPanel();
+		scaler.add(parent);
+
+		AppletParameters parameters = new AppletParameters("graphing");
+		GeoGebraFrameFull fr = new GeoGebraFrameFull(
+				GWT.create(AppletFactory.class), app.getLAF(),
+				app.getDevice(), GeoGebraElement.as(parent.getElement()), parameters);
+		scaler.add(fr);
+
+		parameters.setAttribute("scaleContainerClass", "embedContainer")
+				.setAttribute("allowUpscale", "true")
+				.setAttribute("width", drawEmbed.getGeoEmbed().getContentWidth() + "")
+				.setAttribute("height", drawEmbed.getGeoEmbed().getContentHeight() + "")
+				.setAttribute("appName", drawEmbed.getGeoEmbed().getAppName())
+				.setAttribute("borderColor", "#CCC");
 		for (Entry<String, String> entry: drawEmbed.getGeoEmbed().getSettings()) {
-			parameters.attr(entry.getKey(), entry.getValue());
+			parameters.setAttribute(entry.getKey(), entry.getValue());
 		}
 		String currentBase64 = base64.get(drawEmbed.getEmbedID());
 		if (currentBase64 != null) {
-			parameters.attr("appName", "auto")
-					.attr("ggbBase64", currentBase64);
+			parameters.setAttribute("appName", "auto")
+					.setAttribute("ggbBase64", currentBase64);
 		}
 		fr.setComputedWidth(parameters.getDataParamWidth()
 				- parameters.getBorderThickness());
@@ -158,11 +165,6 @@ public class EmbedManagerW implements EmbedManager, EventRenderable {
 				- parameters.getBorderThickness());
 		fr.runAsyncAfterSplash();
 
-		FlowPanel scaler = new FlowPanel();
-		scaler.add(fr);
-		parameters.setParentElement(scaler.getElement());
-
-		addToGraphics(scaler);
 		CalcEmbedElement element = new CalcEmbedElement(fr, this, drawEmbed.getEmbedID());
 		element.setJsEnabled(isJsEnabled());
 		if (currentBase64 != null) {
@@ -237,7 +239,7 @@ public class EmbedManagerW implements EmbedManager, EventRenderable {
 	}
 
 	private static OpenFileListener getListener(final DrawEmbed drawEmbed,
-			final TestArticleElement parameters) {
+			final AppletParameters parameters) {
 		return () -> {
 			drawEmbed.getGeoEmbed()
 					.setAppName(parameters.getDataParamAppName());
@@ -325,12 +327,17 @@ public class EmbedManagerW implements EmbedManager, EventRenderable {
 		}
 	}
 
-	private GeoElement findById(Integer key) {
+	/**
+	 * Get the embed element with a given id
+	 * @param id embed id to find
+	 * @return GeoEmbed, if found, null otherwise
+	 */
+	public GeoElement findById(int id) {
 		Set<GeoElement> set = app.getKernel().getConstruction()
 				.getGeoSetConstructionOrder();
 		for (GeoElement geo : set) {
 			if (geo instanceof GeoEmbed
-					&& ((GeoEmbed) geo).getEmbedID() == key) {
+					&& ((GeoEmbed) geo).getEmbedID() == id) {
 				return geo;
 			}
 		}
@@ -517,19 +524,16 @@ public class EmbedManagerW implements EmbedManager, EventRenderable {
 	 *
 	 * @return the APIs of the embedded calculators.
 	 */
-	JavaScriptObject getEmbeddedCalculators() {
-		JavaScriptObject jso = JavaScriptObject.createObject();
+	JsPropertyMap<Object> getEmbeddedCalculators() {
+		JsPropertyMap<Object> jso = JsPropertyMap.of();
 
 		for (Entry<DrawWidget, EmbedElement> entry : widgets.entrySet()) {
-			EmbedElement embedElement = entry.getValue();
-			if (embedElement instanceof CalcEmbedElement) {
-				JavaScriptObject api = ((CalcEmbedElement) embedElement)
-						.getApi();
-				pushApisIntoNativeEntry(
-						entry.getKey().getGeoElement().getLabelSimple(), api,
-						jso);
+			Object api = entry.getValue().getApi();
+			if (api != null) {
+				jso.set(entry.getKey().getGeoElement().getLabelSimple(), api);
 			}
 		}
+
 		return jso;
 	}
 
@@ -543,13 +547,6 @@ public class EmbedManagerW implements EmbedManager, EventRenderable {
 		counter = Math.max(counter, id + 1);
 		this.content.put(id, content);
 	}
-
-	private static native void pushApisIntoNativeEntry(
-			String embedName,
-   			JavaScriptObject api,
-			JavaScriptObject jso) /*-{
-		jso[embedName] = api;
-	}-*/;
 
 	@Override
 	public void renderEvent(BaseEvent event) {

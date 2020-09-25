@@ -400,7 +400,9 @@ public class GeoFunction extends GeoElement implements VarString, Translateable,
 					algoMacro.initFunction(this.fun);
 				}
 			}
-			setForceInequality(((GeoFunction) geo).forceInequality);
+			if (geo instanceof GeoFunction) {
+				setForceInequality(((GeoFunction) geo).forceInequality);
+			}
 			isInequality = null;
 		} else {
 			setUndefined();
@@ -954,15 +956,7 @@ public class GeoFunction extends GeoElement implements VarString, Translateable,
 			appendFunctionType(sbxml);
 		}
 
-		sbxml.append("<element");
-		sbxml.append(" type=\"function\"");
-		sbxml.append(" label=\"");
-		sbxml.append(label);
-		if (getDefaultGeoType() >= 0) {
-			sbxml.append("\" default=\"");
-			sbxml.append(getDefaultGeoType());
-		}
-		sbxml.append("\">\n");
+		getElementOpenTagXML(sbxml);
 		getXMLtags(sbxml);
 		getCaptionXML(sbxml);
 		printCASEvalMapXML(sbxml);
@@ -2333,7 +2327,7 @@ public class GeoFunction extends GeoElement implements VarString, Translateable,
 		if (str == null || str.length() == 0) {
 			return true;
 		}
-		if ("?".equals(str) || "{?}".equals(str)) {
+		if (isUndefined(str)) {
 			return true; // undefined/NaN
 		}
 		// if (str.indexOf("%i") > -1 ) return true; // complex answer
@@ -2345,6 +2339,15 @@ public class GeoFunction extends GeoElement implements VarString, Translateable,
 			return true;
 		}
 		return false;
+	}
+
+	/**
+	 * @param str
+	 *            CAS output
+	 * @return whether output is undefined
+	 */
+	static boolean isUndefined(String str) {
+		return "?".equals(str) || "{?}".equals(str);
 	}
 
 	/**

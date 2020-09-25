@@ -57,7 +57,7 @@ import org.geogebra.common.kernel.geos.TextProperties;
 import org.geogebra.common.kernel.geos.Traceable;
 import org.geogebra.common.kernel.geos.properties.Auxiliary;
 import org.geogebra.common.kernel.geos.properties.FillType;
-import org.geogebra.common.kernel.geos.properties.TextAlignment;
+import org.geogebra.common.kernel.geos.properties.HorizontalAlignment;
 import org.geogebra.common.kernel.implicit.GeoImplicit;
 import org.geogebra.common.kernel.kernelND.CoordStyle;
 import org.geogebra.common.kernel.kernelND.GeoConicND;
@@ -1205,10 +1205,10 @@ public class ConsElementXMLHandler {
 	}
 
 	private boolean handleTextAlign(LinkedHashMap<String, String> attrs) {
-		String align = attrs.get("val");
+		HorizontalAlignment align = HorizontalAlignment.fromString(attrs.get("val"));
 
-		if (geo instanceof HasAlignment) {
-			((HasAlignment) geo).setAlignment(TextAlignment.fromString(align));
+		if (align != null && geo instanceof HasAlignment) {
+			((HasAlignment) geo).setAlignment(align);
 		} else {
 			Log.error("Text alignment not supported for " + geo.getGeoClassType());
 		}
@@ -1887,6 +1887,8 @@ public class ConsElementXMLHandler {
 			((TextProperties) geo).setFontSizeMultiplier(1);
 			((TextProperties) geo).setSerifFont(false);
 			((TextProperties) geo).setFontStyle(GFont.PLAIN);
+		} else if (!fontTagProcessed && geo.isGeoInputBox()) {
+			((TextProperties) geo).setSerifFont(true);
 		} else if (!lineStyleTagProcessed && ((geo.isGeoFunctionNVar()
 				&& ((GeoFunctionNVar) geo).isFun2Var())
 				|| geo.isGeoSurfaceCartesian())) {
@@ -2298,11 +2300,9 @@ public class ConsElementXMLHandler {
 
 	private void processStartPointList() {
 		try {
-			Iterator<LocateableExpPair> it = startPointList.iterator();
 			AlgebraProcessor algProc = xmlHandler.getAlgProcessor();
 
-			while (it.hasNext()) {
-				LocateableExpPair pair = it.next();
+			for (LocateableExpPair pair : startPointList) {
 				GeoPointND P = pair.point != null ? pair.point
 						: algProc.evaluateToPoint(pair.exp,
 								ErrorHelper.silent(), true);

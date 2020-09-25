@@ -2,6 +2,7 @@ package org.geogebra.web.html5.main;
 
 import org.geogebra.common.kernel.AppState;
 import org.geogebra.common.plugin.EventType;
+import org.geogebra.web.html5.gui.RenameCard;
 
 /**
  * Controller for multipage files
@@ -72,6 +73,14 @@ public interface PageListControllerInterface {
 	void setActiveSlide(String slideID);
 
 	/**
+	 * load existing page
+	 *
+	 * @param index
+	 *            index of page to load
+	 */
+	void loadPage(int index);
+
+	/**
 	 * Move source slide to target index
 	 * 
 	 * @param i
@@ -105,4 +114,18 @@ public interface PageListControllerInterface {
 	 * @return base64 encoded PDF
 	 */
 	String exportPDF();
+
+	/**
+
+	 * Renaming a slide
+	 * @param card to rename.
+	 * @param title the new title.
+	 */
+	void rename(RenameCard card, String title);
+
+	/**
+	 * @param idx
+	 *            page index
+	 */
+	void selectSlide(int idx);
 }

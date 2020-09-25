@@ -11,10 +11,16 @@ import org.geogebra.common.plugin.Event;
 import org.geogebra.common.plugin.JsReference;
 import org.geogebra.common.plugin.ScriptManager;
 import org.geogebra.common.util.ExternalAccess;
+import org.geogebra.common.plugin.script.JsScript;
 import org.geogebra.common.util.debug.Log;
 
 import com.google.gwt.core.client.JavaScriptObject;
 import com.google.gwt.core.client.JsArrayString;
+
+import elemental2.core.Function;
+import elemental2.dom.DomGlobal;
+import jsinterop.base.Js;
+import jsinterop.base.JsPropertyMap;
 
 /**
  * Provides JavaScript scripting for objects and initializes the public API.
@@ -23,18 +29,34 @@ public class ScriptManagerW extends ScriptManager {
 
 	@ExternalAccess
 	private JavaScriptObject exportedApi;
-	private ApiExporter exporter;
+	private ExportedApi exporter;
 
 	/**
 	 * @param app
 	 *            application
 	 */
-	public ScriptManagerW(AppW app, ApiExporter exporter) {
+	public ScriptManagerW(AppW app, ExportedApi exporter) {
 		super(app);
 		this.exporter = exporter;
-		// this should contain alphanumeric characters only,
-		// but it is not checked otherwise
-		exportedApi = initAppletFunctions(app.getGgbApi(), app.getAppletId());
+		exporter.setGgbAPI(app.getGgbApi());
+		exporter.setScriptManager(this);
+
+		export(bindMethods(exporter));
+	}
+
+	private JsPropertyMap<Object> bindMethods(ExportedApi exporter) {
+		JsPropertyMap<Object> toExport = JsPropertyMap.of();
+		JsPropertyMap<Object> exporterMap = Js.asPropertyMap(exporter);
+
+		exporterMap.forEach(key -> {
+			Object current = exporterMap.get(key);
+
+			if ("function".equals(Js.typeof(current))) {
+				toExport.set(key, Js.<Function>cast(current).bind(exporterMap));
+			}
+		});
+
+		return toExport;
 	}
 
 	public static native void runCallback(JavaScriptObject onLoadCallback) /*-{
@@ -51,7 +73,7 @@ public class ScriptManagerW extends ScriptManager {
 			$wnd.ggbOnInit();
 	}-*/;
 
-	public static native void ggbOnInit(String arg, JavaScriptObject self) /*-{
+	public static native void ggbOnInit(String arg, Object self) /*-{
 		if (typeof $wnd.ggbOnInit === 'function')
 			$wnd.ggbOnInit(arg, self);
 	}-*/;
@@ -59,8 +81,6 @@ public class ScriptManagerW extends ScriptManager {
 	@Override
 	public void ggbOnInit() {
 		try {
-			// Log.debug("almost there" + app.useBrowserForJavaScript());
-			// assignGgbApplet();
 			tryTabletOnInit();
 			boolean standardJS = app.getKernel().getLibraryJavaScript()
 					.equals(Kernel.defaultLibraryJavaScript);
@@ -74,7 +94,7 @@ public class ScriptManagerW extends ScriptManager {
 				if (param == null || "".equals(param)) {
 					ggbOnInitStatic();
 				} else {
-					ggbOnInit(param, exportedApi);
+					ggbOnInit(param, exporter);
 				}
 			}
 		} catch (CommandNotLoadedError e) {
@@ -91,7 +111,7 @@ public class ScriptManagerW extends ScriptManager {
 		if (((AppW) app).getAppletFrame() != null
 		        && ((AppW) app).getAppletFrame().getOnLoadCallback() != null) {
 			JsEval.callNativeJavaScript(
-					((AppW) app).getAppletFrame().getOnLoadCallback(), exportedApi);
+					((AppW) app).getAppletFrame().getOnLoadCallback(), exporter);
 		}
 	}
 
@@ -187,25 +207,16 @@ public class ScriptManagerW extends ScriptManager {
 		json[key] = value;
 	}-*/;
 
-	private JavaScriptObject initAppletFunctions(GgbAPIW ggbAPI,
-			String globalName) {
-		JavaScriptObject api = JavaScriptObject.createObject();
-		exporter.addFunctions(api, ggbAPI);
-		exporter.addListenerFunctions(api, ggbAPI);
-		export(api, ggbAPI, globalName);
-		return api;
+	/**
+	 * @param toExport API object
+	 */
+	public void export(JsPropertyMap<Object> toExport) {
+		String appletId = ((AppW) app).getAppletId();
+		Js.asPropertyMap(DomGlobal.window).set(appletId, toExport);
+		Js.asPropertyMap(DomGlobal.document).set(appletId, toExport);
 	}
 
-	private native void export(JavaScriptObject api, GgbAPIW ggbAPI, String globalName) /*-{
-		api.remove = function() {
-			ggbAPI.@org.geogebra.web.html5.main.GgbAPIW::removeApplet()();
-			$doc[globalName] = $wnd[globalName] = api = null;
-		};
-
-		$doc[globalName] = $wnd[globalName] = api;
-	}-*/;
-
-	public JavaScriptObject getApi() {
-		return exportedApi;
+	public Object getApi() {
+		return exporter;
 	}
 }
