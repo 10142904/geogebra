@@ -515,7 +515,7 @@ public interface JavaScriptAPI {
 	 */
 	boolean isIndependent(String objName);
 
-	void unregisterStoreUndoListener(String JSFunctionName);
+	void unregisterStoreUndoListener(Object jsFunction);
 
 	/**
 	 * @param objName
@@ -847,7 +847,6 @@ public interface JavaScriptAPI {
 	 * name of the deleted object as a single argument.
 	 */
 	void registerRemoveListener(Object jsFunction);
-
 
 	/**
 	 * Removes a previously registered remove listener

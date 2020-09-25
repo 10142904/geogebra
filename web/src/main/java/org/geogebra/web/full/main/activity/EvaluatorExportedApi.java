@@ -73,6 +73,6 @@ public class EvaluatorExportedApi implements ExportedApi {
 	}
 
 	public void registerClientListener(Object JSFunctionName) {
-		ggbAPI.registerClientListener(scriptManager.getId(JSFunctionName));
+		ggbAPI.registerClientListener(JSFunctionName);
 	}
 }

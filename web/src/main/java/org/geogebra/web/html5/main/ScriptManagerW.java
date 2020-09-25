@@ -11,7 +11,6 @@ import org.geogebra.common.plugin.Event;
 import org.geogebra.common.plugin.JsReference;
 import org.geogebra.common.plugin.ScriptManager;
 import org.geogebra.common.util.ExternalAccess;
-import org.geogebra.common.plugin.script.JsScript;
 import org.geogebra.common.util.debug.Log;
 
 import com.google.gwt.core.client.JavaScriptObject;

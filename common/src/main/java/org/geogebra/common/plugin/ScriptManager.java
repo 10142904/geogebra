@@ -199,8 +199,8 @@ public abstract class ScriptManager implements EventListener {
 		registerGlobalListener(storeUndoListeners, JSFunctionName);
 	}
 
-	public synchronized void unregisterStoreUndoListener(String JSFunctionName) {
-		storeUndoListeners.remove(JsReference.fromName(JSFunctionName));
+	public synchronized void unregisterStoreUndoListener(Object JSFunctionName) {
+		storeUndoListeners.remove(JsReference.fromNative(JSFunctionName));
 	}
 
 	private void registerGlobalListener(ArrayList<JsReference> listenerList,
@@ -225,18 +225,18 @@ public abstract class ScriptManager implements EventListener {
 	 * 
 	 * @see #registerAddListener(Object)
 	 */
-	public synchronized void unregisterAddListener(String JSFunctionName) {
-		addListeners.remove(JsReference.fromName(JSFunctionName));
+	public synchronized void unregisterAddListener(Object JSFunctionName) {
+		addListeners.remove(JsReference.fromNative(JSFunctionName));
 	}
 
 	/**
 	 * Registers a JavaScript function as a remove listener for the applet's
 	 * construction. Whenever an object is deleted in the GeoGebraApplet's
-	 * construction, the JavaScript function JSFunctionName is called using the
+	 * construction, the JavaScript function jsFunction is called using the
 	 * name of the deleted object as a single argument.
 	 */
-	public synchronized void registerRemoveListener(Object JSFunctionName) {
-		registerGlobalListener(removeListeners, JSFunctionName);
+	public synchronized void registerRemoveListener(Object jsFunction) {
+		registerGlobalListener(removeListeners, jsFunction);
 	}
 
 	/**
@@ -244,8 +244,8 @@ public abstract class ScriptManager implements EventListener {
 	 * 
 	 * @see #registerRemoveListener(Object)
 	 */
-	public synchronized void unregisterRemoveListener(String JSFunctionName) {
-		removeListeners.remove(JsReference.fromName(JSFunctionName));
+	public synchronized void unregisterRemoveListener(Object jsFunction) {
+		removeListeners.remove(JsReference.fromNative(jsFunction));
 	}
 
 	/**
